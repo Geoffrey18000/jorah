@@ -24,19 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Restaurer le cache de traductions
-        uses: actions/cache@v4
-        with:
-          path: translations.json
-          key: jorah-translations-${{ github.run_id }}
-          restore-keys: |
-            jorah-translations-
-      - name: Installer les dépendances
-        run: npm install --no-audit --no-fund
       - name: Générer le site
         run: node build.js
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

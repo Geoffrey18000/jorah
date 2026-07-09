@@ -5,12 +5,13 @@ const fs = require("fs");
 const path = require("path");
 
 const FEEDS = [
-  { name: "Numerama",        url: "https://www.numerama.com/feed/",                                lang: "FR", cat: "Tech" },
-  { name: "ActuIA",          url: "https://www.actuia.com/feed/",                                  lang: "FR", cat: "IA" },
-  { name: "TechCrunch AI",   url: "https://techcrunch.com/category/artificial-intelligence/feed/", lang: "EN", cat: "IA" },
-  { name: "The Verge",       url: "https://www.theverge.com/rss/index.xml",                        lang: "EN", cat: "Tech" },
-  { name: "MIT Tech Review", url: "https://www.technologyreview.com/feed/",                        lang: "EN", cat: "Recherche" },
-  { name: "IEEE Spectrum",   url: "https://spectrum.ieee.org/feeds/topic/robotics.rss",            lang: "EN", cat: "Robotique" },
+  { name: "ActuIA",           url: "https://www.actuia.com/feed/",                  cat: "IA" },
+  { name: "Journal du Geek",  url: "https://www.journaldugeek.com/tag/ia/feed/",    cat: "IA" },
+  { name: "Numerama",         url: "https://www.numerama.com/feed/",                cat: "Tech" },
+  { name: "Siècle Digital",   url: "https://siecledigital.fr/feed/",                cat: "Tech" },
+  { name: "Clubic",           url: "https://www.clubic.com/feed/rss",               cat: "Tech" },
+  { name: "Korben",           url: "https://korben.info/feed",                      cat: "Tech" },
+  { name: "Trust My Science", url: "https://trustmyscience.com/feed/",              cat: "Sciences" },
 ];
 
 const MAX_PER_FEED = 12;
@@ -50,7 +51,7 @@ function parseFeed(xml, feed) {
     if (!title || !link || isNaN(date)) continue;
     let desc = stripHtml(descRaw);
     if (desc.length > 220) desc = desc.slice(0, 217).trimEnd() + "…";
-    items.push({ title, link: stripHtml(link), date: date.toISOString(), desc, source: feed.name, lang: feed.lang, cat: feed.cat });
+    items.push({ title, link: stripHtml(link), date: date.toISOString(), desc, source: feed.name, cat: feed.cat });
   }
   return items;
 }
@@ -70,91 +71,6 @@ async function fetchFeed(feed) {
     console.warn(`  ✗ ${feed.name}: ${e.message}`);
     return [];
   }
-}
-
-// --- Traduction des articles anglais via l'API Claude ---
-// Cache : chaque article n'est traduit qu'une seule fois (translations.json).
-// Sans clé API (ANTHROPIC_API_KEY), les articles restent en anglais.
-
-const CACHE_PATH = path.join(__dirname, "translations.json");
-
-const TRANSLATION_SCHEMA = {
-  type: "object",
-  properties: {
-    translations: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          title: { type: "string" },
-          desc: { type: "string" },
-        },
-        required: ["id", "title", "desc"],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ["translations"],
-  additionalProperties: false,
-};
-
-async function translateEnglishItems(items) {
-  let cache = {};
-  try { cache = JSON.parse(fs.readFileSync(CACHE_PATH, "utf8")); } catch {}
-
-  const pending = items.filter(i => i.lang === "EN" && !cache[i.link]);
-  if (pending.length > 0 && !process.env.ANTHROPIC_API_KEY) {
-    console.warn(`  ! ANTHROPIC_API_KEY absente — ${pending.length} articles anglais laissés en VO`);
-  } else if (pending.length > 0) {
-    const Anthropic = require("@anthropic-ai/sdk");
-    const client = new Anthropic();
-    const BATCH = 25;
-    for (let start = 0; start < pending.length; start += BATCH) {
-      const batch = pending.slice(start, start + BATCH);
-      try {
-        const response = await client.messages.create({
-          model: "claude-opus-4-8",
-          max_tokens: 16000,
-          system:
-            "Tu es traducteur pour un site d'actualité tech français. Traduis les titres (title) et descriptions (desc) d'articles de l'anglais vers le français : style journalistique, concis et naturel. Conserve tels quels les noms de produits, d'entreprises, de personnes et les termes techniques établis. Si desc est vide, renvoie une chaîne vide.",
-          messages: [{
-            role: "user",
-            content: JSON.stringify(batch.map((i, idx) => ({ id: idx, title: i.title, desc: i.desc }))),
-          }],
-          output_config: { format: { type: "json_schema", schema: TRANSLATION_SCHEMA } },
-        });
-        if (response.stop_reason === "refusal") {
-          console.warn("  ✗ Traduction refusée par l'API pour ce lot — articles laissés en VO");
-          continue;
-        }
-        const text = response.content.find(b => b.type === "text")?.text;
-        const { translations } = JSON.parse(text);
-        for (const t of translations) {
-          const item = batch[t.id];
-          if (item) cache[item.link] = { title: t.title, desc: t.desc };
-        }
-        console.log(`  ✓ Traduction : ${batch.length} articles (${response.usage.input_tokens} tokens entrée / ${response.usage.output_tokens} sortie)`);
-      } catch (e) {
-        console.warn(`  ✗ Traduction : ${e.message} — articles laissés en VO`);
-        break;
-      }
-    }
-  }
-
-  for (const i of items) {
-    const t = cache[i.link];
-    if (t) {
-      i.title = t.title;
-      if (t.desc) i.desc = t.desc;
-      i.translated = true;
-    }
-  }
-
-  // On ne garde en cache que les articles encore affichés
-  const links = new Set(items.map(i => i.link));
-  const pruned = Object.fromEntries(Object.entries(cache).filter(([k]) => links.has(k)));
-  fs.writeFileSync(CACHE_PATH, JSON.stringify(pruned, null, 1), "utf8");
 }
 
 function relativeDate(iso) {
@@ -179,7 +95,6 @@ function render(items) {
       <div class="meta">
         <span class="badge badge-${esc(i.cat.toLowerCase().replace(/\W/g, ""))}">${esc(i.cat)}</span>
         <span class="src">${esc(i.source)}</span>
-        <span class="lang">${i.translated ? "EN → FR" : i.lang}</span>
         <time datetime="${i.date}">${relativeDate(i.date)}</time>
       </div>
       <h2><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a></h2>
@@ -194,8 +109,8 @@ function render(items) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jorah — l’essentiel de l’actu IA &amp; robotique</title>
-<meta name="description" content="Jorah agrège l’actualité IA, robotique et tech, mise à jour automatiquement.">
+<title>Jorah — l’essentiel de l’actu IA &amp; tech en français</title>
+<meta name="description" content="Jorah agrège l’actualité IA, tech et sciences des meilleures sources françaises, mise à jour automatiquement.">
 <style>
   :root {
     --bg: #0d1117; --card: #161b22; --border: #21262d;
@@ -223,9 +138,8 @@ function render(items) {
   .card p { color: var(--muted); font-size: 0.92rem; }
   .meta { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
   .badge { border-radius: 999px; padding: 2px 10px; font-weight: 600; background: var(--accent); color: #fff; }
-  .badge-ia { background: #8957e5; } .badge-robotique { background: #d29922; color:#1f2328; }
-  .badge-recherche { background: #3fb950; color:#1f2328; } .badge-tech { background: #58a6ff; }
-  .lang { border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; font-size: 0.7rem; }
+  .badge-ia { background: #8957e5; } .badge-sciences { background: #3fb950; color:#1f2328; }
+  .badge-tech { background: #58a6ff; }
   footer { color: var(--muted); font-size: 0.85rem; margin-top: 40px; text-align: center; }
 </style>
 </head>
@@ -233,7 +147,7 @@ function render(items) {
 <div class="wrap">
   <header>
     <h1>Jorah<span class="dot">.</span></h1>
-    <p class="tagline">L’essentiel de l’actu IA, robotique &amp; tech</p>
+    <p class="tagline">L’essentiel de l’actu IA &amp; tech, en français</p>
     <p class="updated">Mis à jour automatiquement — dernière mise à jour : ${updated}</p>
   </header>
   <nav class="chips">${chips}</nav>
@@ -266,8 +180,6 @@ ${cards}
     console.error("Aucun article récupéré — vérifie la connexion réseau.");
     process.exit(1);
   }
-  console.log("Traduction des articles anglais…");
-  await translateEnglishItems(items);
   const html = render(items);
   fs.mkdirSync(path.join(__dirname, "site"), { recursive: true });
   const out = path.join(__dirname, "site", "index.html");
