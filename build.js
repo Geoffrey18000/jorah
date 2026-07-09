@@ -150,12 +150,12 @@ function render(items) {
   .site-header { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--line);
                  background: color-mix(in srgb, var(--card) 85%, transparent);
                  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-  .nav { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+  .nav { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 24px; }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
   .brand-name { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
   .nav .updated-top { margin-left: auto; color: var(--muted); font-size: 0.78rem; text-align: right; }
 
-  .wrap { max-width: 820px; margin: 0 auto; padding: 38px 20px 72px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 38px 24px 72px; }
   .hero h1 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
   .hero .sub { color: var(--muted); font-size: 1rem; margin-top: 8px; }
 
@@ -165,8 +165,10 @@ function render(items) {
   .chip:hover { color: var(--ink); border-color: var(--cyan); }
   .chip.active { background: linear-gradient(90deg, var(--cyan), var(--blue)); border-color: transparent; color: #fff; }
 
+  #feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px;
-          margin-bottom: 14px; box-shadow: 0 1px 2px color-mix(in srgb, var(--navy) 5%, transparent);
+          display: flex; flex-direction: column;
+          box-shadow: 0 1px 2px color-mix(in srgb, var(--navy) 5%, transparent);
           transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
   .card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cyan) 45%, var(--line));
                 box-shadow: 0 10px 28px color-mix(in srgb, var(--navy) 12%, transparent); }
