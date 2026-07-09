@@ -111,43 +111,69 @@ function render(items) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jorah — l’essentiel de l’actu IA &amp; tech en français</title>
 <meta name="description" content="Jorah agrège l’actualité IA, tech et sciences des meilleures sources françaises, mise à jour automatiquement.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='3' y='3' width='58' height='58' rx='12' fill='%237C4DFF' stroke='%23141216' stroke-width='5'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-family='Arial Black,Arial,sans-serif' font-size='38' font-weight='900' fill='white'%3EJ%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d1117; --card: #161b22; --border: #21262d;
-    --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+    --bg: #F3EFE6; --card: #FFFFFF; --ink: #17141C; --muted: #6E6878;
+    --violet: #7C4DFF; --jaune: #FFC933; --vert: #3ECF8E; --shadow: #17141C;
   }
-  @media (prefers-color-scheme: light) {
-    :root { --bg: #f6f8fa; --card: #ffffff; --border: #d0d7de; --text: #1f2328; --muted: #656d76; --accent: #0969da; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17141F; --card: #232030; --ink: #F1EDE2; --muted: #9B94A8; --shadow: #000000; }
   }
   * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .wrap { max-width: 780px; margin: 0 auto; padding: 24px 16px 64px; }
-  header { padding: 28px 0 12px; }
-  header h1 { font-size: 2.1rem; letter-spacing: -0.03em; }
-  header h1 .dot { color: var(--accent); }
-  .tagline { font-size: 1rem; color: var(--text); margin-top: 2px; }
-  .updated { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 26px; }
-  .chip { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 999px;
-          padding: 6px 14px; font-size: 0.85rem; cursor: pointer; }
-  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
-  .card h2 { font-size: 1.08rem; line-height: 1.35; margin: 8px 0 6px; }
-  .card a { color: var(--text); text-decoration: none; }
-  .card a:hover { color: var(--accent); }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.55 "Space Grotesk", system-ui, sans-serif; }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { padding: 30px 0 8px; }
+  .brand { display: flex; align-items: center; gap: 16px; }
+  .logo { flex: none; transform: rotate(-4deg); }
+  header h1 { font-family: "Archivo Black", "Space Grotesk", sans-serif; font-size: 2.4rem;
+              letter-spacing: 0.02em; text-transform: uppercase; line-height: 1; }
+  .tagline { font-size: 1rem; font-weight: 500; margin-top: 6px; }
+  .updated { color: var(--muted); font-size: 0.82rem; margin-top: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 30px; }
+  .chip { background: var(--card); color: var(--ink); border: 2px solid var(--ink); border-radius: 10px;
+          padding: 7px 16px; font: 700 0.85rem "Space Grotesk", sans-serif; cursor: pointer;
+          box-shadow: 3px 3px 0 var(--shadow); transition: transform 0.1s, box-shadow 0.1s; }
+  .chip:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow); }
+  .chip.active { background: var(--violet); color: #fff; }
+  .card { background: var(--card); border: 2px solid var(--ink); border-radius: 12px;
+          padding: 18px 20px; margin-bottom: 18px; box-shadow: 5px 5px 0 var(--shadow);
+          transition: transform 0.12s, box-shadow 0.12s; }
+  .card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--shadow); }
+  .card h2 { font-size: 1.12rem; line-height: 1.35; margin: 10px 0 6px; font-weight: 700; }
+  .card a { color: var(--ink); text-decoration: none; }
+  .card a:hover { color: var(--violet); text-decoration: underline; text-decoration-thickness: 2px; }
   .card p { color: var(--muted); font-size: 0.92rem; }
-  .meta { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
-  .badge { border-radius: 999px; padding: 2px 10px; font-weight: 600; background: var(--accent); color: #fff; }
-  .badge-ia { background: #8957e5; } .badge-sciences { background: #3fb950; color:#1f2328; }
-  .badge-tech { background: #58a6ff; }
-  footer { color: var(--muted); font-size: 0.85rem; margin-top: 40px; text-align: center; }
+  .meta { display: flex; align-items: center; gap: 10px; font-size: 0.75rem; color: var(--muted); flex-wrap: wrap; }
+  .src { font-weight: 700; color: var(--ink); }
+  .badge { border: 2px solid var(--ink); border-radius: 7px; padding: 1px 9px; font-weight: 700;
+           text-transform: uppercase; letter-spacing: 0.04em; box-shadow: 2px 2px 0 var(--shadow); }
+  .badge-ia { background: var(--violet); color: #fff; }
+  .badge-tech { background: var(--jaune); color: #17141C; }
+  .badge-sciences { background: var(--vert); color: #17141C; }
+  footer { color: var(--muted); font-size: 0.85rem; margin-top: 44px; text-align: center; }
+  @media (max-width: 480px) {
+    header h1 { font-size: 1.8rem; }
+    .brand { gap: 12px; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Jorah<span class="dot">.</span></h1>
-    <p class="tagline">L’essentiel de l’actu IA &amp; tech, en français</p>
+    <div class="brand">
+      <svg class="logo" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="3" y="3" width="58" height="58" rx="12" fill="var(--violet)" stroke="var(--ink)" stroke-width="4"/>
+        <text x="32" y="46" text-anchor="middle" font-family="'Archivo Black', 'Arial Black', sans-serif" font-size="36" fill="#fff">J</text>
+      </svg>
+      <div>
+        <h1>Jorah</h1>
+        <p class="tagline">L’essentiel de l’actu IA &amp; tech, en français</p>
+      </div>
+    </div>
     <p class="updated">Mis à jour automatiquement — dernière mise à jour : ${updated}</p>
   </header>
   <nav class="chips">${chips}</nav>
