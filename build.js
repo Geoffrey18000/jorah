@@ -72,6 +72,91 @@ async function fetchFeed(feed) {
   }
 }
 
+// --- Traduction des articles anglais via l'API Claude ---
+// Cache : chaque article n'est traduit qu'une seule fois (translations.json).
+// Sans clé API (ANTHROPIC_API_KEY), les articles restent en anglais.
+
+const CACHE_PATH = path.join(__dirname, "translations.json");
+
+const TRANSLATION_SCHEMA = {
+  type: "object",
+  properties: {
+    translations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          title: { type: "string" },
+          desc: { type: "string" },
+        },
+        required: ["id", "title", "desc"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["translations"],
+  additionalProperties: false,
+};
+
+async function translateEnglishItems(items) {
+  let cache = {};
+  try { cache = JSON.parse(fs.readFileSync(CACHE_PATH, "utf8")); } catch {}
+
+  const pending = items.filter(i => i.lang === "EN" && !cache[i.link]);
+  if (pending.length > 0 && !process.env.ANTHROPIC_API_KEY) {
+    console.warn(`  ! ANTHROPIC_API_KEY absente — ${pending.length} articles anglais laissés en VO`);
+  } else if (pending.length > 0) {
+    const Anthropic = require("@anthropic-ai/sdk");
+    const client = new Anthropic();
+    const BATCH = 25;
+    for (let start = 0; start < pending.length; start += BATCH) {
+      const batch = pending.slice(start, start + BATCH);
+      try {
+        const response = await client.messages.create({
+          model: "claude-opus-4-8",
+          max_tokens: 16000,
+          system:
+            "Tu es traducteur pour un site d'actualité tech français. Traduis les titres (title) et descriptions (desc) d'articles de l'anglais vers le français : style journalistique, concis et naturel. Conserve tels quels les noms de produits, d'entreprises, de personnes et les termes techniques établis. Si desc est vide, renvoie une chaîne vide.",
+          messages: [{
+            role: "user",
+            content: JSON.stringify(batch.map((i, idx) => ({ id: idx, title: i.title, desc: i.desc }))),
+          }],
+          output_config: { format: { type: "json_schema", schema: TRANSLATION_SCHEMA } },
+        });
+        if (response.stop_reason === "refusal") {
+          console.warn("  ✗ Traduction refusée par l'API pour ce lot — articles laissés en VO");
+          continue;
+        }
+        const text = response.content.find(b => b.type === "text")?.text;
+        const { translations } = JSON.parse(text);
+        for (const t of translations) {
+          const item = batch[t.id];
+          if (item) cache[item.link] = { title: t.title, desc: t.desc };
+        }
+        console.log(`  ✓ Traduction : ${batch.length} articles (${response.usage.input_tokens} tokens entrée / ${response.usage.output_tokens} sortie)`);
+      } catch (e) {
+        console.warn(`  ✗ Traduction : ${e.message} — articles laissés en VO`);
+        break;
+      }
+    }
+  }
+
+  for (const i of items) {
+    const t = cache[i.link];
+    if (t) {
+      i.title = t.title;
+      if (t.desc) i.desc = t.desc;
+      i.translated = true;
+    }
+  }
+
+  // On ne garde en cache que les articles encore affichés
+  const links = new Set(items.map(i => i.link));
+  const pruned = Object.fromEntries(Object.entries(cache).filter(([k]) => links.has(k)));
+  fs.writeFileSync(CACHE_PATH, JSON.stringify(pruned, null, 1), "utf8");
+}
+
 function relativeDate(iso) {
   const diff = Date.now() - new Date(iso).getTime();
   const h = Math.round(diff / 3600000);
@@ -94,7 +179,7 @@ function render(items) {
       <div class="meta">
         <span class="badge badge-${esc(i.cat.toLowerCase().replace(/\W/g, ""))}">${esc(i.cat)}</span>
         <span class="src">${esc(i.source)}</span>
-        <span class="lang">${i.lang}</span>
+        <span class="lang">${i.translated ? "EN → FR" : i.lang}</span>
         <time datetime="${i.date}">${relativeDate(i.date)}</time>
       </div>
       <h2><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a></h2>
@@ -181,6 +266,8 @@ ${cards}
     console.error("Aucun article récupéré — vérifie la connexion réseau.");
     process.exit(1);
   }
+  console.log("Traduction des articles anglais…");
+  await translateEnglishItems(items);
   const html = render(items);
   fs.mkdirSync(path.join(__dirname, "site"), { recursive: true });
   const out = path.join(__dirname, "site", "index.html");
