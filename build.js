@@ -1,4 +1,4 @@
-// Veille IA & Robotique — générateur de site statique
+// Jorah — générateur de site statique
 // Usage : node build.js  → récupère les flux RSS et régénère site/index.html
 
 const fs = require("fs");
@@ -16,6 +16,8 @@ const FEEDS = [
 
 const MAX_PER_FEED = 12;
 const MAX_TOTAL = 60;
+
+// ---------- Récupération et parsing RSS ----------
 
 function stripHtml(s) {
   return s
@@ -36,7 +38,6 @@ function pick(block, tag) {
 
 function parseFeed(xml, feed) {
   const items = [];
-  // RSS 2.0 (<item>) et Atom (<entry>)
   const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || xml.match(/<entry[\s>][\s\S]*?<\/entry>/gi) || [];
   for (const block of blocks.slice(0, MAX_PER_FEED)) {
     let link = pick(block, "link");
@@ -59,7 +60,7 @@ function parseFeed(xml, feed) {
 async function fetchFeed(feed) {
   try {
     const res = await fetch(feed.url, {
-      headers: { "user-agent": "Mozilla/5.0 (VeilleIA/0.1; +https://example.com)" },
+      headers: { "user-agent": "Mozilla/5.0 (Jorah/1.0; +https://jorah.fr)" },
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -86,6 +87,23 @@ function esc(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// ---------- Identité visuelle ----------
+// Palette : navy #0B1D3A · cyan #00B2FF · bleu #2563FF · blanc #FFFFFF · gris #F2F4F7
+// Typo : Space Grotesk (titres) · Inter (texte)
+// Logo : double hexagone navy/cyan avec nœud de circuit
+
+const LOGO_SVG = `<svg class="logo" width="40" height="40" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#00B2FF"/><stop offset="1" stop-color="#2563FF"/>
+        </linearGradient></defs>
+        <path d="M30 8 L11 19 L11 41 L30 52" stroke="var(--navy-logo)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M42 20 L61 31 L61 53 L42 64 L23 53 L23 42" stroke="url(#lg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="42" cy="42" r="6" fill="url(#lg)"/>
+        <path d="M42 42 L42 58" stroke="url(#lg)" stroke-width="5" stroke-linecap="round"/>
+      </svg>`;
+
+const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300B2FF'/%3E%3Cstop offset='1' stop-color='%232563FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M30 8 L11 19 L11 41 L30 52' stroke='%230B1D3A' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M42 20 L61 31 L61 53 L42 64 L23 53 L23 42' stroke='url(%23g)' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='42' cy='42' r='6' fill='url(%23g)'/%3E%3Cpath d='M42 42 L42 58' stroke='url(%23g)' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E";
+
 function render(items) {
   const cats = [...new Set(items.map(i => i.cat))].sort();
   const updated = new Date().toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
@@ -111,76 +129,91 @@ function render(items) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jorah — l’essentiel de l’actu IA &amp; tech en français</title>
 <meta name="description" content="Jorah agrège l’actualité IA, tech et sciences des meilleures sources françaises, mise à jour automatiquement.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='3' y='3' width='58' height='58' rx='12' fill='%237C4DFF' stroke='%23141216' stroke-width='5'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-family='Arial Black,Arial,sans-serif' font-size='38' font-weight='900' fill='white'%3EJ%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="${FAVICON}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #F3EFE6; --card: #FFFFFF; --ink: #17141C; --muted: #6E6878;
-    --violet: #7C4DFF; --jaune: #FFC933; --vert: #3ECF8E; --shadow: #17141C;
+    --navy: #0B1D3A; --cyan: #00B2FF; --blue: #2563FF;
+    --bg: #F2F4F7; --card: #FFFFFF; --ink: #0B1D3A; --muted: #5A6B85; --line: #E2E8F2;
+    --navy-logo: #0B1D3A;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #17141F; --card: #232030; --ink: #F1EDE2; --muted: #9B94A8; --shadow: #000000; }
+    :root { --bg: #081426; --card: #0F2138; --ink: #EAF1FA; --muted: #8CA0BC; --line: #1D3556;
+            --navy-logo: #EAF1FA; }
   }
   * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--ink); font: 16px/1.55 "Space Grotesk", system-ui, sans-serif; }
-  .wrap { max-width: 800px; margin: 0 auto; padding: 24px 16px 64px; }
-  header { padding: 30px 0 8px; }
-  .brand { display: flex; align-items: center; gap: 16px; }
-  .logo { flex: none; transform: rotate(-4deg); }
-  header h1 { font-family: "Archivo Black", "Space Grotesk", sans-serif; font-size: 2.4rem;
-              letter-spacing: 0.02em; text-transform: uppercase; line-height: 1; }
-  .tagline { font-size: 1rem; font-weight: 500; margin-top: 6px; }
-  .updated { color: var(--muted); font-size: 0.82rem; margin-top: 14px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 30px; }
-  .chip { background: var(--card); color: var(--ink); border: 2px solid var(--ink); border-radius: 10px;
-          padding: 7px 16px; font: 700 0.85rem "Space Grotesk", sans-serif; cursor: pointer;
-          box-shadow: 3px 3px 0 var(--shadow); transition: transform 0.1s, box-shadow 0.1s; }
-  .chip:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow); }
-  .chip.active { background: var(--violet); color: #fff; }
-  .card { background: var(--card); border: 2px solid var(--ink); border-radius: 12px;
-          padding: 18px 20px; margin-bottom: 18px; box-shadow: 5px 5px 0 var(--shadow);
-          transition: transform 0.12s, box-shadow 0.12s; }
-  .card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--shadow); }
-  .card h2 { font-size: 1.12rem; line-height: 1.35; margin: 10px 0 6px; font-weight: 700; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.6 "Inter", system-ui, sans-serif; }
+  h1, h2, .brand-name { font-family: "Space Grotesk", "Inter", sans-serif; }
+
+  .site-header { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--line);
+                 background: color-mix(in srgb, var(--card) 85%, transparent);
+                 -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .nav { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+  .brand-name { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
+  .nav .updated-top { margin-left: auto; color: var(--muted); font-size: 0.78rem; text-align: right; }
+
+  .wrap { max-width: 820px; margin: 0 auto; padding: 38px 20px 72px; }
+  .hero h1 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+  .hero .sub { color: var(--muted); font-size: 1rem; margin-top: 8px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; margin: 26px 0 30px; }
+  .chip { background: var(--card); color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+          padding: 7px 17px; font: 600 0.87rem "Inter", sans-serif; cursor: pointer; transition: all 0.15s; }
+  .chip:hover { color: var(--ink); border-color: var(--cyan); }
+  .chip.active { background: linear-gradient(90deg, var(--cyan), var(--blue)); border-color: transparent; color: #fff; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px;
+          margin-bottom: 14px; box-shadow: 0 1px 2px color-mix(in srgb, var(--navy) 5%, transparent);
+          transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
+  .card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cyan) 45%, var(--line));
+                box-shadow: 0 10px 28px color-mix(in srgb, var(--navy) 12%, transparent); }
+  .card h2 { font-size: 1.08rem; line-height: 1.4; margin: 9px 0 6px; font-weight: 600; }
   .card a { color: var(--ink); text-decoration: none; }
-  .card a:hover { color: var(--violet); text-decoration: underline; text-decoration-thickness: 2px; }
+  .card a:hover { color: var(--blue); }
   .card p { color: var(--muted); font-size: 0.92rem; }
-  .meta { display: flex; align-items: center; gap: 10px; font-size: 0.75rem; color: var(--muted); flex-wrap: wrap; }
-  .src { font-weight: 700; color: var(--ink); }
-  .badge { border: 2px solid var(--ink); border-radius: 7px; padding: 1px 9px; font-weight: 700;
-           text-transform: uppercase; letter-spacing: 0.04em; box-shadow: 2px 2px 0 var(--shadow); }
-  .badge-ia { background: var(--violet); color: #fff; }
-  .badge-tech { background: var(--jaune); color: #17141C; }
-  .badge-sciences { background: var(--vert); color: #17141C; }
-  footer { color: var(--muted); font-size: 0.85rem; margin-top: 44px; text-align: center; }
+  .meta { display: flex; align-items: center; gap: 10px; font-size: 0.76rem; color: var(--muted); flex-wrap: wrap; }
+  .src { font-weight: 600; }
+  .badge { border-radius: 999px; padding: 3px 11px; font-weight: 600; font-size: 0.71rem;
+           text-transform: uppercase; letter-spacing: 0.04em; }
+  .badge-ia { background: color-mix(in srgb, var(--cyan) 13%, transparent); color: color-mix(in srgb, var(--cyan) 70%, var(--ink)); }
+  .badge-tech { background: color-mix(in srgb, var(--blue) 11%, transparent); color: color-mix(in srgb, var(--blue) 75%, var(--ink)); }
+  .badge-sciences { background: color-mix(in srgb, var(--navy) 9%, transparent); color: color-mix(in srgb, var(--navy) 60%, var(--muted)); }
+  @media (prefers-color-scheme: dark) {
+    .badge-ia { color: var(--cyan); }
+    .badge-tech { color: #7EA4FF; }
+    .badge-sciences { background: color-mix(in srgb, #FFFFFF 8%, transparent); color: var(--muted); }
+  }
+
+  footer { color: var(--muted); font-size: 0.85rem; margin-top: 48px; text-align: center; }
   @media (max-width: 480px) {
-    header h1 { font-size: 1.8rem; }
-    .brand { gap: 12px; }
+    .hero h1 { font-size: 1.5rem; }
+    .nav .updated-top { display: none; }
   }
 </style>
 </head>
 <body>
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="./">
+      ${LOGO_SVG}
+      <span class="brand-name">Jorah</span>
+    </a>
+    <span class="updated-top">Mis à jour automatiquement<br>${updated}</span>
+  </nav>
+</header>
 <div class="wrap">
-  <header>
-    <div class="brand">
-      <svg class="logo" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-        <rect x="3" y="3" width="58" height="58" rx="12" fill="var(--violet)" stroke="var(--ink)" stroke-width="4"/>
-        <text x="32" y="46" text-anchor="middle" font-family="'Archivo Black', 'Arial Black', sans-serif" font-size="36" fill="#fff">J</text>
-      </svg>
-      <div>
-        <h1>Jorah</h1>
-        <p class="tagline">L’essentiel de l’actu IA &amp; tech, en français</p>
-      </div>
-    </div>
-    <p class="updated">Mis à jour automatiquement — dernière mise à jour : ${updated}</p>
-  </header>
+  <section class="hero">
+    <h1>L’essentiel de l’actu IA &amp; tech, en français</h1>
+    <p class="sub">Les dernières actualités de ${FEEDS.length} sources françaises de référence, réunies en un seul endroit.</p>
+  </section>
   <nav class="chips">${chips}</nav>
   <main id="feed">
 ${cards}
   </main>
-  <footer>Jorah · Agrégé automatiquement depuis ${FEEDS.length} sources · Prototype</footer>
+  <footer>Jorah · L’actu IA &amp; tech agrégée automatiquement depuis ${FEEDS.length} sources françaises</footer>
 </div>
 <script>
   document.querySelectorAll(".chip").forEach(chip => chip.addEventListener("click", () => {
@@ -196,6 +229,8 @@ ${cards}
 </html>`;
 }
 
+// ---------- Génération ----------
+
 (async () => {
   console.log("Récupération des flux…");
   const results = await Promise.all(FEEDS.map(fetchFeed));
@@ -206,9 +241,12 @@ ${cards}
     console.error("Aucun article récupéré — vérifie la connexion réseau.");
     process.exit(1);
   }
-  const html = render(items);
-  fs.mkdirSync(path.join(__dirname, "site"), { recursive: true });
-  const out = path.join(__dirname, "site", "index.html");
-  fs.writeFileSync(out, html, "utf8");
-  console.log(`\n${items.length} articles → ${out}`);
+  const siteDir = path.join(__dirname, "site");
+  fs.mkdirSync(siteDir, { recursive: true });
+  // Nettoyage des anciennes pages multi-sections
+  for (const f of ["outils.html", "guides.html", "comparatifs.html", "blog.html"]) {
+    try { fs.unlinkSync(path.join(siteDir, f)); } catch {}
+  }
+  fs.writeFileSync(path.join(siteDir, "index.html"), render(items), "utf8");
+  console.log(`\n${items.length} articles → site/index.html`);
 })();
