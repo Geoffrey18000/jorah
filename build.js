@@ -154,8 +154,12 @@ function render(items) {
                  background: color-mix(in srgb, var(--card) 85%, transparent);
                  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   .nav { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 24px; }
-  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
-  .brand-name { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
+  .brand { display: flex; align-items: center; text-decoration: none; color: var(--ink); }
+  .logo-img { height: 46px; width: auto; display: block; }
+  @media (prefers-color-scheme: dark) {
+    /* Le logo a un fond clair : petit socle blanc arrondi pour qu'il ressorte sur le thème sombre */
+    .logo-img { background: #FFFFFF; border-radius: 10px; padding: 4px 8px; height: 54px; }
+  }
   .nav .updated-top { margin-left: auto; color: var(--muted); font-size: 0.78rem; text-align: right; }
 
   .wrap { max-width: 1240px; margin: 0 auto; padding: 38px 24px 72px; }
@@ -202,9 +206,8 @@ function render(items) {
 <body>
 <header class="site-header">
   <nav class="nav">
-    <a class="brand" href="./">
-      ${LOGO_SVG}
-      <span class="brand-name">Jorah</span>
+    <a class="brand" href="./" aria-label="Jorah — accueil">
+      <img class="logo-img" src="logo.png" alt="Jorah" width="2508" height="627">
     </a>
     <span class="updated-top">Mis à jour automatiquement<br>${updated}</span>
   </nav>
