@@ -92,17 +92,20 @@ function esc(s) {
 // Typo : Space Grotesk (titres) · Inter (texte)
 // Logo : double hexagone navy/cyan avec nœud de circuit
 
-const LOGO_SVG = `<svg class="logo" width="40" height="40" viewBox="0 0 72 72" fill="none" aria-hidden="true">
-        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#00B2FF"/><stop offset="1" stop-color="#2563FF"/>
+const LOGO_SVG = `<svg class="logo" width="52" height="52" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+        <defs><linearGradient id="lg" x1="20" y1="14" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#25C1FF"/><stop offset="1" stop-color="#1F7BF5"/>
         </linearGradient></defs>
-        <path d="M30 8 L11 19 L11 41 L30 52" stroke="var(--navy-logo)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M42 20 L61 31 L61 53 L42 64 L23 53 L23 42" stroke="url(#lg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="42" cy="42" r="6" fill="url(#lg)"/>
-        <path d="M42 42 L42 58" stroke="url(#lg)" stroke-width="5" stroke-linecap="round"/>
+        <path d="M33 9 L12 21 L12 45 L33 57" stroke="var(--navy-logo)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M39 15 L60 27 L60 51 L39 63 L26 55.5" stroke="url(#lg)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="36.5" cy="35" r="6.5" fill="url(#lg)"/>
+        <path d="M36.5 39 L27.5 54.5" stroke="url(#lg)" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="26.5" cy="57" r="3.6" fill="url(#lg)"/>
+        <path d="M40 37.5 L49 52" stroke="url(#lg)" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="50" cy="54" r="3.6" fill="url(#lg)"/>
       </svg>`;
 
-const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300B2FF'/%3E%3Cstop offset='1' stop-color='%232563FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M30 8 L11 19 L11 41 L30 52' stroke='%230B1D3A' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M42 20 L61 31 L61 53 L42 64 L23 53 L23 42' stroke='url(%23g)' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='42' cy='42' r='6' fill='url(%23g)'/%3E%3Cpath d='M42 42 L42 58' stroke='url(%23g)' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E";
+const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='20' y1='14' x2='60' y2='60' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2325C1FF'/%3E%3Cstop offset='1' stop-color='%231F7BF5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M33 9 L12 21 L12 45 L33 57' stroke='%230B1D3A' stroke-width='7.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M39 15 L60 27 L60 51 L39 63 L26 55.5' stroke='url(%23g)' stroke-width='7.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='36.5' cy='35' r='6.5' fill='url(%23g)'/%3E%3Cpath d='M36.5 39 L27.5 54.5' stroke='url(%23g)' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='26.5' cy='57' r='3.6' fill='url(%23g)'/%3E%3Cpath d='M40 37.5 L49 52' stroke='url(%23g)' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='54' r='3.6' fill='url(%23g)'/%3E%3C/svg%3E";
 
 function render(items) {
   const cats = [...new Set(items.map(i => i.cat))].sort();
