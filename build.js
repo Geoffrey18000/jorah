@@ -207,7 +207,7 @@ function render(items) {
 <header class="site-header">
   <nav class="nav">
     <a class="brand" href="./" aria-label="Jorah — accueil">
-      <img class="logo-img" src="logo.png" alt="Jorah" width="2508" height="627">
+      <img class="logo-img" src="logo.png" alt="Jorah" width="640" height="160">
     </a>
     <span class="updated-top">Mis à jour automatiquement<br>${updated}</span>
   </nav>
