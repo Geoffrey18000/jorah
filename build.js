@@ -197,12 +197,12 @@ function render(items) {
                  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   .nav { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 24px; }
   .brand { display: flex; align-items: center; text-decoration: none; color: var(--ink); }
-  .logo-img { height: 64px; width: auto; display: block; }
+  .logo-img { height: 104px; width: auto; display: block; }
   @media (prefers-color-scheme: dark) {
     /* Le logo a un fond clair : petit socle blanc arrondi pour qu'il ressorte sur le thème sombre */
-    .logo-img { background: #FFFFFF; border-radius: 12px; padding: 5px 10px; height: 74px; }
+    .logo-img { background: #FFFFFF; border-radius: 14px; padding: 6px 14px; height: 116px; }
   }
-  @media (max-width: 480px) { .logo-img { height: 50px; } }
+  @media (max-width: 480px) { .logo-img { height: 74px; } }
   .nav .updated-top { margin-left: auto; color: var(--muted); font-size: 0.78rem; text-align: right; }
 
   .wrap { max-width: 1240px; margin: 0 auto; padding: 38px 24px 72px; }
