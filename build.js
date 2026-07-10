@@ -22,8 +22,9 @@ const MAX_TOTAL = 60;
 function stripHtml(s) {
   return s
     .replace(/<!\[CDATA\[|\]\]>/g, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")  // décode d'abord les balises échappées…
+    .replace(/<[^>]+>/g, " ")                      // …pour qu'elles soient bien supprimées
+    .replace(/&amp;/g, "&")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
     .replace(/&quot;/g, '"').replace(/&#8217;|&rsquo;/g, "’").replace(/&nbsp;/g, " ")
@@ -34,6 +35,29 @@ function stripHtml(s) {
 function pick(block, tag) {
   const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
   return m ? m[1].trim() : "";
+}
+
+function decodeUrl(u) {
+  return u.replace(/&amp;/g, "&").replace(/&#38;/g, "&").replace(/&quot;/g, '"').trim();
+}
+
+// Extrait l'URL de l'image de l'article depuis le flux RSS.
+function findImage(block) {
+  let m = block.match(/<media:content[^>]+url=["']([^"']+)["'][^>]*(?:type=["']image|medium=["']image|\.(?:jpg|jpeg|png|webp))/i);
+  if (m) return decodeUrl(m[1]);
+  m = block.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
+  if (m) return decodeUrl(m[1]);
+  m = block.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*type=["']image/i);
+  if (m) return decodeUrl(m[1]);
+  const unesc = block.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+  m = unesc.match(/<img[^>]+src=["']?([^"'>\s]+)/i);
+  if (m) {
+    let url = decodeUrl(m[1]);
+    if (url.startsWith("//")) url = "https:" + url;
+    if (url.startsWith("http:")) url = url.replace(/^http:/, "https:"); // évite le mixed-content en HTTPS
+    return url;
+  }
+  return "";
 }
 
 function parseFeed(xml, feed) {
@@ -52,7 +76,9 @@ function parseFeed(xml, feed) {
     if (!title || !link || isNaN(date)) continue;
     let desc = stripHtml(descRaw);
     if (desc.length > 220) desc = desc.slice(0, 217).trimEnd() + "…";
-    items.push({ title, link: stripHtml(link), date: date.toISOString(), desc, source: feed.name, cat: feed.cat });
+    let image = findImage(block);
+    if (image.startsWith("http:")) image = image.replace(/^http:/, "https:");
+    items.push({ title, link: stripHtml(link), date: date.toISOString(), desc, image, source: feed.name, cat: feed.cat });
   }
   return items;
 }
@@ -111,16 +137,27 @@ function render(items) {
   const cats = [...new Set(items.map(i => i.cat))].sort();
   const updated = new Date().toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
 
-  const cards = items.map(i => `
+  const cards = items.map(i => {
+    const catClass = esc(i.cat.toLowerCase().replace(/\W/g, ""));
+    const thumb = i.image
+      ? `<img src="${esc(i.image)}" alt="" loading="lazy" onerror="this.closest('.thumb').classList.add('no-img')">`
+      : "";
+    return `
     <article class="card" data-cat="${esc(i.cat)}">
-      <div class="meta">
-        <span class="badge badge-${esc(i.cat.toLowerCase().replace(/\W/g, ""))}">${esc(i.cat)}</span>
-        <span class="src">${esc(i.source)}</span>
-        <time datetime="${i.date}">${relativeDate(i.date)}</time>
+      <a class="thumb thumb-${catClass}${i.image ? "" : " no-img"}" href="${esc(i.link)}" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+        ${thumb}<span class="thumb-mark">${esc(i.cat)}</span>
+      </a>
+      <div class="card-body">
+        <div class="meta">
+          <span class="badge badge-${catClass}">${esc(i.cat)}</span>
+          <span class="src">${esc(i.source)}</span>
+          <time datetime="${i.date}">${relativeDate(i.date)}</time>
+        </div>
+        <h2><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a></h2>
+        ${i.desc ? `<p>${esc(i.desc)}</p>` : ""}
       </div>
-      <h2><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a></h2>
-      ${i.desc ? `<p>${esc(i.desc)}</p>` : ""}
-    </article>`).join("\n");
+    </article>`;
+  }).join("\n");
 
   const chips = ["Tout", ...cats].map((c, idx) =>
     `<button class="chip${idx === 0 ? " active" : ""}" data-filter="${esc(c)}">${esc(c)}</button>`).join("\n");
@@ -173,12 +210,27 @@ function render(items) {
   .chip.active { background: linear-gradient(90deg, var(--cyan), var(--blue)); border-color: transparent; color: #fff; }
 
   #feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px;
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
           display: flex; flex-direction: column;
           box-shadow: 0 1px 2px color-mix(in srgb, var(--navy) 5%, transparent);
           transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
   .card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cyan) 45%, var(--line));
                 box-shadow: 0 10px 28px color-mix(in srgb, var(--navy) 12%, transparent); }
+  .thumb { display: block; position: relative; aspect-ratio: 16 / 9; overflow: hidden;
+           background: var(--line); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block;
+               transition: transform 0.3s ease; }
+  .card:hover .thumb img { transform: scale(1.04); }
+  .thumb-mark { display: none; }
+  /* Visuel de repli quand l'article n'a pas d'image (ou image cassée) */
+  .thumb.no-img img { display: none; }
+  .thumb.no-img { display: flex; align-items: center; justify-content: center; }
+  .thumb.no-img .thumb-mark { display: block; font-family: "Space Grotesk", sans-serif; font-weight: 700;
+           font-size: 1.15rem; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; opacity: 0.95; }
+  .thumb-ia { background: linear-gradient(135deg, #00B2FF, #2563FF); }
+  .thumb-tech { background: linear-gradient(135deg, #2563FF, #0B1D3A); }
+  .thumb-sciences { background: linear-gradient(135deg, #10B981, #0B7C63); }
+  .card-body { padding: 16px 20px 20px; display: flex; flex-direction: column; }
   .card h2 { font-size: 1.08rem; line-height: 1.4; margin: 9px 0 6px; font-weight: 600; }
   .card a { color: var(--ink); text-decoration: none; }
   .card a:hover { color: var(--blue); }
