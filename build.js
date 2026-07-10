@@ -5,17 +5,22 @@ const fs = require("fs");
 const path = require("path");
 
 const FEEDS = [
-  { name: "ActuIA",           url: "https://www.actuia.com/feed/",                  cat: "IA" },
-  { name: "Journal du Geek",  url: "https://www.journaldugeek.com/tag/ia/feed/",    cat: "IA" },
-  { name: "Numerama",         url: "https://www.numerama.com/feed/",                cat: "Tech" },
-  { name: "Siècle Digital",   url: "https://siecledigital.fr/feed/",                cat: "Tech" },
-  { name: "Clubic",           url: "https://www.clubic.com/feed/rss",               cat: "Tech" },
-  { name: "Korben",           url: "https://korben.info/feed",                      cat: "Tech" },
-  { name: "Trust My Science", url: "https://trustmyscience.com/feed/",              cat: "Sciences" },
+  { name: "ActuIA",             url: "https://www.actuia.com/feed/",                  cat: "IA" },
+  { name: "Journal du Geek",    url: "https://www.journaldugeek.com/tag/ia/feed/",    cat: "IA" },
+  { name: "Numerama",           url: "https://www.numerama.com/feed/",                cat: "Tech" },
+  { name: "Siècle Digital",     url: "https://siecledigital.fr/feed/",                cat: "Tech" },
+  { name: "Clubic",             url: "https://www.clubic.com/feed/rss",               cat: "Tech" },
+  { name: "Korben",             url: "https://korben.info/feed",                      cat: "Tech" },
+  { name: "Trust My Science",   url: "https://trustmyscience.com/feed/",              cat: "Sciences" },
+  { name: "Auto-Moto",          url: "https://www.auto-moto.com/feed",                cat: "Automobile" },
+  { name: "Automobile Propre",  url: "https://www.automobile-propre.com/feed/",       cat: "Automobile" },
+  { name: "Numerama Vroom",     url: "https://www.numerama.com/vroom/feed/",          cat: "Automobile" },
+  { name: "Génération Robots",  url: "https://www.generationrobots.com/blog/fr/feed/", cat: "Robotique" },
+  { name: "Numerama Robotique", url: "https://www.numerama.com/tag/robot/feed/",      cat: "Robotique" },
 ];
 
-const MAX_PER_FEED = 12;
-const MAX_TOTAL = 60;
+const MAX_PER_FEED = 15;   // articles récupérés par flux
+const PER_CAT = 15;        // articles conservés par catégorie (garantit que chaque filtre a du contenu)
 
 // ---------- Récupération et parsing RSS ----------
 
@@ -168,7 +173,7 @@ function render(items) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jorah — l’essentiel de l’actu IA &amp; tech en français</title>
-<meta name="description" content="Jorah agrège l’actualité IA, tech et sciences des meilleures sources françaises, mise à jour automatiquement.">
+<meta name="description" content="Jorah agrège l’actualité IA, tech, sciences, automobile et robotique des meilleures sources françaises, mise à jour automatiquement.">
 <link rel="icon" href="${FAVICON}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -231,6 +236,8 @@ function render(items) {
   .thumb-ia { background: linear-gradient(135deg, #00B2FF, #2563FF); }
   .thumb-tech { background: linear-gradient(135deg, #2563FF, #0B1D3A); }
   .thumb-sciences { background: linear-gradient(135deg, #10B981, #0B7C63); }
+  .thumb-automobile { background: linear-gradient(135deg, #FF8A3D, #D64E0A); }
+  .thumb-robotique { background: linear-gradient(135deg, #A78BFA, #6D28D9); }
   .card-body { padding: 16px 20px 20px; display: flex; flex-direction: column; }
   .card h2 { font-size: 1.08rem; line-height: 1.4; margin: 9px 0 6px; font-weight: 600; }
   .card a { color: var(--ink); text-decoration: none; }
@@ -242,11 +249,15 @@ function render(items) {
            text-transform: uppercase; letter-spacing: 0.04em; }
   .badge-ia { background: color-mix(in srgb, var(--cyan) 13%, transparent); color: color-mix(in srgb, var(--cyan) 70%, var(--ink)); }
   .badge-tech { background: color-mix(in srgb, var(--blue) 11%, transparent); color: color-mix(in srgb, var(--blue) 75%, var(--ink)); }
-  .badge-sciences { background: color-mix(in srgb, var(--navy) 9%, transparent); color: color-mix(in srgb, var(--navy) 60%, var(--muted)); }
+  .badge-sciences { background: color-mix(in srgb, #10B981 14%, transparent); color: #0B7C63; }
+  .badge-automobile { background: color-mix(in srgb, #FF6B1F 14%, transparent); color: #D64E0A; }
+  .badge-robotique { background: color-mix(in srgb, #8B5CF6 15%, transparent); color: #6D28D9; }
   @media (prefers-color-scheme: dark) {
     .badge-ia { color: var(--cyan); }
     .badge-tech { color: #7EA4FF; }
-    .badge-sciences { background: color-mix(in srgb, #FFFFFF 8%, transparent); color: var(--muted); }
+    .badge-sciences { color: #34D399; }
+    .badge-automobile { color: #FF9A5A; }
+    .badge-robotique { color: #B794F6; }
   }
 
   footer { color: var(--muted); font-size: 0.85rem; margin-top: 48px; text-align: center; }
@@ -295,9 +306,16 @@ ${cards}
 (async () => {
   console.log("Récupération des flux…");
   const results = await Promise.all(FEEDS.map(fetchFeed));
-  const items = results.flat()
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, MAX_TOTAL);
+  // Sélection par catégorie : on garde les plus récents de chaque catégorie,
+  // puis on retrie l'ensemble par date pour la vue « Tout ».
+  const byCat = {};
+  for (const it of results.flat()) (byCat[it.cat] ||= []).push(it);
+  const items = [];
+  for (const cat of Object.keys(byCat)) {
+    byCat[cat].sort((a, b) => new Date(b.date) - new Date(a.date));
+    items.push(...byCat[cat].slice(0, PER_CAT));
+  }
+  items.sort((a, b) => new Date(b.date) - new Date(a.date));
   if (items.length === 0) {
     console.error("Aucun article récupéré — vérifie la connexion réseau.");
     process.exit(1);
