@@ -181,6 +181,14 @@ function coverSvg(catCls, emoji, uid) {
 </svg>`;
 }
 
+// Couverture d'un guide : le visuel fourni s'il existe, sinon le SVG de marque.
+function coverHtml(g, base, uidPrefix) {
+  if (g.coverImage) {
+    return `<img class="cover-img" src="${base}covers/${encodeURIComponent(g.coverImage)}" alt="${esc(g.title)}" loading="lazy">`;
+  }
+  return coverSvg(catClass(g.category), g.cover, `${uidPrefix}-${g.slug}`);
+}
+
 // ---------- Guides : lecture markdown ----------
 
 function parseFrontmatter(raw) {
@@ -225,17 +233,24 @@ function loadGuides() {
   const dir = path.join(__dirname, "content", "guides");
   let files = [];
   try { files = fs.readdirSync(dir).filter(f => f.endsWith(".md")); } catch { return []; }
+  // Visuels de couverture fournis : content/guides/covers/<nom>.(jpg|png|webp)
+  let coverFiles = [];
+  try { coverFiles = fs.readdirSync(path.join(dir, "covers")).filter(f => /\.(jpe?g|png|webp|avif)$/i.test(f)); } catch {}
   const guides = files.map(file => {
     const raw = fs.readFileSync(path.join(dir, file), "utf8");
     const { meta, body } = parseFrontmatter(raw);
     const bodyHtml = mdToHtml(body);
     const words = body.split(/\s+/).filter(Boolean).length;
+    const slug = file.replace(/\.md$/, "");
+    // Priorité au champ « image » du frontmatter, sinon un fichier nommé comme le slug.
+    const coverImage = meta.image || coverFiles.find(f => f.replace(/\.[^.]+$/, "") === slug) || "";
     return {
-      slug: file.replace(/\.md$/, ""),
+      slug,
       title: meta.title || "Sans titre",
       category: meta.category || "IA",
       date: meta.date || new Date().toISOString().slice(0, 10),
       cover: meta.cover || "✨",
+      coverImage,
       excerpt: meta.excerpt || "",
       readingTime: Math.max(1, Math.round(words / 200)),
       bodyHtml,
@@ -340,7 +355,8 @@ const STYLES = `
   }
 
   /* ---- Article de guide ---- */
-  .cover-svg { display: block; width: 100%; height: 100%; }
+  .cover-svg, .cover-img { display: block; width: 100%; height: 100%; }
+  .cover-img { object-fit: cover; }
   .guide-cover { aspect-ratio: 3 / 1; border-radius: 18px; overflow: hidden; margin-bottom: 8px; }
   .article { max-width: 760px; margin: 0 auto; }
   .article-meta { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--muted);
@@ -477,7 +493,7 @@ function renderGuidesIndex(guides) {
     const cc = catClass(g.category);
     return `
     <a class="card" href="guides/${esc(g.slug)}.html">
-      <span class="thumb">${coverSvg(cc, g.cover, "card-" + g.slug)}</span>
+      <span class="thumb">${coverHtml(g, "", "card")}</span>
       <div class="card-body">
         <div class="meta">
           <span class="badge badge-${cc}">${esc(g.category)}</span>
@@ -511,7 +527,7 @@ function renderGuide(g) {
   const cc = catClass(g.category);
   const main = `<div class="wrap">
   <article class="article">
-    <div class="guide-cover">${coverSvg(cc, g.cover, "hero-" + g.slug)}</div>
+    <div class="guide-cover">${coverHtml(g, "../", "hero")}</div>
     <div class="article-meta">
       <span class="badge badge-${cc}">${esc(g.category)}</span>
       <time datetime="${g.date}">${frDate(g.date)}</time>
@@ -561,6 +577,16 @@ ${g.bodyHtml}
   // Domaine personnalisé : indispensable dans les fichiers publiés pour que
   // GitHub Pages garde jorah.fr attaché et génère le certificat HTTPS.
   fs.writeFileSync(path.join(siteDir, "CNAME"), "jorah.fr\n", "utf8");
+
+  // Copie des visuels de couverture fournis vers le site.
+  try {
+    const src = path.join(__dirname, "content", "guides", "covers");
+    const dst = path.join(siteDir, "covers");
+    const covers = fs.readdirSync(src);
+    fs.mkdirSync(dst, { recursive: true });
+    for (const f of covers) fs.copyFileSync(path.join(src, f), path.join(dst, f));
+    if (covers.length) console.log(`  ${covers.length} visuel(s) de couverture copié(s)`);
+  } catch {}
 
   fs.writeFileSync(path.join(siteDir, "index.html"), renderIndex(items), "utf8");
   fs.writeFileSync(path.join(siteDir, "guides.html"), renderGuidesIndex(guides), "utf8");

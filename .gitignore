@@ -1,7 +1,8 @@
 node_modules/
 translations.json
 
-# Pages générées par build.js (regénérées à chaque déploiement)
+# Pages et fichiers générés par build.js (regénérés à chaque déploiement)
 site/index.html
 site/guides.html
 site/guides/
+site/covers/
