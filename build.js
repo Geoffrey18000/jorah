@@ -505,6 +505,10 @@ ${g.bodyHtml}
   const siteDir = path.join(__dirname, "site");
   fs.mkdirSync(path.join(siteDir, "guides"), { recursive: true });
 
+  // Domaine personnalisé : indispensable dans les fichiers publiés pour que
+  // GitHub Pages garde jorah.fr attaché et génère le certificat HTTPS.
+  fs.writeFileSync(path.join(siteDir, "CNAME"), "jorah.fr\n", "utf8");
+
   fs.writeFileSync(path.join(siteDir, "index.html"), renderIndex(items), "utf8");
   fs.writeFileSync(path.join(siteDir, "guides.html"), renderGuidesIndex(guides), "utf8");
   for (const g of guides) {
