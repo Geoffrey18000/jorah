@@ -230,6 +230,13 @@ const STYLES = `
 
   .wrap { max-width: 1240px; margin: 0 auto; padding: 38px 24px 72px; }
   .hero h1 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+  .hero-title { margin: 0 0 4px; }
+  .hero-img { display: block; width: 100%; max-width: 440px; height: auto; }
+  .hero-fallback { display: none; font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+  @media (prefers-color-scheme: dark) {
+    .hero-img { display: none; }
+    .hero-fallback { display: block; }
+  }
   .hero .sub { color: var(--muted); font-size: 1rem; margin-top: 8px; }
   .hero .updated { color: var(--muted); font-size: 0.82rem; margin-top: 10px; }
 
@@ -380,7 +387,10 @@ function renderIndex(items) {
 
   const main = `<div class="wrap">
   <section class="hero">
-    <h1>L’essentiel de l’actu IA &amp; tech, en français</h1>
+    <h1 class="hero-title">
+      <img class="hero-img" src="soustitre.png" alt="L’essentiel de l’actu IA & tech, en français" width="900" height="299">
+      <span class="hero-fallback">L’essentiel de l’actu IA &amp; tech, en français</span>
+    </h1>
     <p class="sub">Les dernières actualités de ${FEEDS.length} sources françaises de référence, réunies en un seul endroit.</p>
     <p class="updated">Mis à jour automatiquement — ${updated}</p>
   </section>
