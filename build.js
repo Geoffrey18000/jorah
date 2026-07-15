@@ -128,6 +128,59 @@ function catClass(cat) {
   return esc(cat.toLowerCase().replace(/\W/g, ""));
 }
 
+// ---------- Couvertures graphiques des guides (SVG généré) ----------
+
+const GRADIENTS = {
+  ia:         ["#00B2FF", "#2563FF"],
+  tech:       ["#2563FF", "#0B1D3A"],
+  sciences:   ["#10B981", "#0B7C63"],
+  automobile: ["#FF8A3D", "#D64E0A"],
+  robotique:  ["#A78BFA", "#6D28D9"],
+};
+
+function hexPoints(cx, cy, r) {
+  const p = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 180) * (60 * i - 30);
+    p.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
+  }
+  return p.join(" ");
+}
+
+// Couverture d'article : dégradé de la catégorie + hexagones (rappel du logo)
+// + nœuds de circuit + l'emoji du sujet dans une pastille translucide.
+function coverSvg(catCls, emoji, uid) {
+  const [c1, c2] = GRADIENTS[catCls] || GRADIENTS.ia;
+  const id = String(uid).replace(/\W/g, "");
+  return `<svg class="cover-svg" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="cg-${id}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>
+    </linearGradient>
+    <radialGradient id="gl-${id}" cx="0.5" cy="0.5" r="0.55">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.30"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="500" fill="url(#cg-${id})"/>
+  <g fill="none" stroke="#fff" stroke-opacity="0.13" stroke-width="2.5" stroke-linejoin="round">
+    <polygon points="${hexPoints(1065, 60, 155)}"/>
+    <polygon points="${hexPoints(1155, 385, 105)}"/>
+    <polygon points="${hexPoints(85, 445, 165)}"/>
+    <polygon points="${hexPoints(35, 85, 95)}"/>
+  </g>
+  <g stroke="#fff" stroke-opacity="0.28" stroke-width="3" fill="#fff" fill-opacity="0.6">
+    <line x1="205" y1="120" x2="335" y2="120"/><line x1="335" y1="120" x2="335" y2="215"/>
+    <circle cx="205" cy="120" r="7"/><circle cx="335" cy="215" r="9"/>
+    <line x1="995" y1="405" x2="900" y2="405"/><line x1="900" y1="405" x2="900" y2="315"/>
+    <circle cx="995" cy="405" r="7"/><circle cx="900" cy="315" r="9"/>
+  </g>
+  <rect width="1200" height="500" fill="url(#gl-${id})"/>
+  <circle cx="600" cy="250" r="100" fill="#fff" fill-opacity="0.16"/>
+  <circle cx="600" cy="250" r="100" fill="none" stroke="#fff" stroke-opacity="0.55" stroke-width="3"/>
+  <text x="600" y="250" font-size="120" text-anchor="middle" dominant-baseline="central">${esc(emoji)}</text>
+</svg>`;
+}
+
 // ---------- Guides : lecture markdown ----------
 
 function parseFrontmatter(raw) {
@@ -287,13 +340,13 @@ const STYLES = `
   }
 
   /* ---- Article de guide ---- */
-  .guide-cover { aspect-ratio: 3 / 1; display: flex; align-items: center; justify-content: center;
-                 border-radius: 18px; font-size: 4.5rem; margin-bottom: 8px; }
+  .cover-svg { display: block; width: 100%; height: 100%; }
+  .guide-cover { aspect-ratio: 3 / 1; border-radius: 18px; overflow: hidden; margin-bottom: 8px; }
   .article { max-width: 760px; margin: 0 auto; }
   .article-meta { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--muted);
                   flex-wrap: wrap; margin: 22px 0 10px; }
   .article > h1 { font-size: 2.1rem; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 8px; }
-  @media (max-width: 480px) { .article > h1 { font-size: 1.6rem; } .guide-cover { font-size: 3rem; } }
+  @media (max-width: 480px) { .article > h1 { font-size: 1.6rem; } }
   .article-body { font-size: 1.08rem; line-height: 1.75; margin-top: 20px; }
   .article-body h2 { font-size: 1.4rem; margin: 34px 0 12px; letter-spacing: -0.01em; }
   .article-body h3 { font-size: 1.15rem; margin: 24px 0 8px; }
@@ -424,7 +477,7 @@ function renderGuidesIndex(guides) {
     const cc = catClass(g.category);
     return `
     <a class="card" href="guides/${esc(g.slug)}.html">
-      <span class="thumb thumb-${cc}"><span class="thumb-emoji">${esc(g.cover)}</span></span>
+      <span class="thumb">${coverSvg(cc, g.cover, "card-" + g.slug)}</span>
       <div class="card-body">
         <div class="meta">
           <span class="badge badge-${cc}">${esc(g.category)}</span>
@@ -458,7 +511,7 @@ function renderGuide(g) {
   const cc = catClass(g.category);
   const main = `<div class="wrap">
   <article class="article">
-    <div class="guide-cover thumb-${cc}">${esc(g.cover)}</div>
+    <div class="guide-cover">${coverSvg(cc, g.cover, "hero-" + g.slug)}</div>
     <div class="article-meta">
       <span class="badge badge-${cc}">${esc(g.category)}</span>
       <time datetime="${g.date}">${frDate(g.date)}</time>
