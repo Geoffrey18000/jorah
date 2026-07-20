@@ -23,6 +23,7 @@ const FEEDS = [
 
 const MAX_PER_FEED = 15;   // articles récupérés par flux
 const PER_CAT = 15;        // articles conservés par catégorie (garantit que chaque filtre a du contenu)
+const SITE_URL = "https://jorah.fr";
 
 // ---------- Récupération et parsing RSS ----------
 
@@ -389,9 +390,10 @@ const STYLES = `
   }
 `;
 
-function pageShell({ title, description, active, base = "", main, script = "" }) {
+function pageShell({ title, description, active, base = "", path = "/", ogImage = "/logo.png", main, script = "" }) {
   const link = (a, href, label) =>
     `<a href="${base}${href}"${active === a ? ' class="active"' : ""}>${label}</a>`;
+  const canonical = SITE_URL + path;
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -399,6 +401,15 @@ function pageShell({ title, description, active, base = "", main, script = "" })
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
+<link rel="canonical" href="${esc(canonical)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Jorah">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${esc(canonical)}">
+<meta property="og:image" content="${esc(SITE_URL + ogImage)}">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="${FAVICON}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -484,7 +495,7 @@ ${cards}
   return pageShell({
     title: "Jorah — l’essentiel de l’actu IA & tech en français",
     description: "Jorah agrège l’actualité IA, tech, sciences, automobile et robotique des meilleures sources françaises, mise à jour automatiquement.",
-    active: "actus", base: "", main, script,
+    active: "actus", base: "", path: "/", main, script,
   });
 }
 
@@ -519,7 +530,7 @@ ${cards || '<p class="sub">Les premiers guides arrivent très bientôt.</p>'}
   return pageShell({
     title: "Guides IA & Robotique expliqués simplement — Jorah",
     description: "Des guides clairs et sans jargon pour comprendre l’intelligence artificielle et la robotique, même quand on débute.",
-    active: "guides", base: "", main,
+    active: "guides", base: "", path: "/guides.html", main,
   });
 }
 
@@ -547,7 +558,10 @@ ${g.bodyHtml}
   return pageShell({
     title: `${g.title} — Jorah`,
     description: g.excerpt,
-    active: "guides", base: "../", main,
+    active: "guides", base: "../",
+    path: `/guides/${g.slug}.html`,
+    ogImage: g.coverImage ? `/covers/${g.coverImage}` : "/logo.png",
+    main,
   });
 }
 
@@ -594,6 +608,31 @@ ${g.bodyHtml}
     fs.writeFileSync(path.join(siteDir, "guides", `${g.slug}.html`), renderGuide(g), "utf8");
   }
 
+  // --- Référencement : sitemap.xml + robots.txt ---
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = [
+    { loc: `${SITE_URL}/`, lastmod: today, changefreq: "hourly", priority: "1.0" },
+    { loc: `${SITE_URL}/guides.html`, lastmod: today, changefreq: "weekly", priority: "0.9" },
+    ...guides.map(g => ({
+      loc: `${SITE_URL}/guides/${g.slug}.html`,
+      lastmod: g.date, changefreq: "monthly", priority: "0.8",
+    })),
+  ];
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map(u => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${u.lastmod}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join("\n")}
+</urlset>
+`;
+  fs.writeFileSync(path.join(siteDir, "sitemap.xml"), sitemap, "utf8");
+  fs.writeFileSync(path.join(siteDir, "robots.txt"),
+    `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`, "utf8");
+
   console.log(`\n${items.length} actus → site/index.html`);
   console.log(`${guides.length} guide(s) → site/guides.html${guides.length ? " + site/guides/*.html" : ""}`);
+  console.log(`sitemap.xml (${urls.length} URL) + robots.txt`);
 })();
