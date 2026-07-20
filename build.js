@@ -283,9 +283,9 @@ const STYLES = `
                  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   .nav { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 24px; padding: 12px 24px; }
   .brand { display: flex; align-items: center; text-decoration: none; color: var(--ink); flex: none; }
-  .logo-img { height: 104px; width: auto; display: block; }
+  .logo-img { height: 48px; width: auto; display: block; }
   @media (prefers-color-scheme: dark) {
-    .logo-img { background: #FFFFFF; border-radius: 14px; padding: 6px 14px; height: 116px; }
+    .logo-img { background: #FFFFFF; border-radius: 10px; padding: 4px 9px; height: 54px; }
   }
   .nav-links { margin-left: auto; display: flex; align-items: center; gap: 26px; }
   .nav-links a { position: relative; color: var(--muted); font-weight: 600; font-size: 0.95rem;
@@ -299,14 +299,11 @@ const STYLES = `
 
   .wrap { max-width: 1240px; margin: 0 auto; padding: 38px 24px 72px; }
   .hero h1 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
-  .hero-title { margin: 0 0 4px; }
-  .hero-img { display: block; width: 100%; max-width: 440px; height: auto; }
-  .hero-fallback { display: none; font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
-  @media (prefers-color-scheme: dark) {
-    .hero-img { display: none; }
-    .hero-fallback { display: block; }
-  }
-  .hero .sub { color: var(--muted); font-size: 1rem; margin-top: 8px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+             overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .hero-banner { display: block; width: 100%; max-width: 760px; height: auto;
+                 border-radius: 16px; border: 1px solid var(--line); }
+  .hero .sub { color: var(--muted); font-size: 1rem; margin-top: 14px; }
   .hero .updated { color: var(--muted); font-size: 0.82rem; margin-top: 10px; }
 
   .chips { display: flex; flex-wrap: wrap; gap: 9px; margin: 26px 0 30px; }
@@ -384,7 +381,7 @@ const STYLES = `
   footer { color: var(--muted); font-size: 0.85rem; margin-top: 48px; text-align: center; }
   @media (max-width: 480px) {
     .hero h1 { font-size: 1.5rem; }
-    .logo-img { height: 74px; }
+    .logo-img { height: 40px; }
     .nav { gap: 14px; }
     .nav-links { gap: 18px; }
   }
@@ -467,10 +464,9 @@ function renderIndex(items) {
 
   const main = `<div class="wrap">
   <section class="hero">
-    <h1 class="hero-title">
-      <img class="hero-img" src="soustitre.png" alt="L’essentiel de l’actu IA & tech, en français" width="900" height="299">
-      <span class="hero-fallback">L’essentiel de l’actu IA &amp; tech, en français</span>
-    </h1>
+    <h1 class="sr-only">L’essentiel de l’actu IA &amp; tech, en français</h1>
+    <img class="hero-banner" src="banniere.jpg" width="1600" height="900"
+         alt="Jorah — L’essentiel de l’actu IA &amp; tech : analyses, tendances et innovations pour comprendre le monde de demain">
     <p class="sub">Les dernières actualités de ${FEEDS.length} sources françaises de référence, réunies en un seul endroit.</p>
     <p class="updated">Mis à jour automatiquement — ${updated}</p>
   </section>
